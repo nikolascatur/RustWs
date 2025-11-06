@@ -2,6 +2,7 @@ use axum::{Router, routing::get};
 
 use crate::server::runner::{run_socket, ws_handler};
 
+mod actor;
 mod server;
 
 #[tokio::main]
