@@ -1,9 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
 use axum::extract::ws::Message;
-use parking_lot::RwLock;
+use parking_lot::RwLock as PLRwLock;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc;
+use tokio::sync::{RwLock, mpsc};
 use uuid::Uuid;
 
 #[derive(Clone, Copy, Debug)]
@@ -21,16 +21,16 @@ pub struct Player {
     pub angle: f32,
     pub vel: f32,
     pub hp: i32,
-    pub latest_input: RwLock<Option<InputState>>,
+    pub latest_input: PLRwLock<Option<InputState>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PlayerSnapshot {
-    id: String,
-    x: f32,
-    y: f32,
-    angle: f32,
-    hp: i32,
+    pub id: String,
+    pub x: f32,
+    pub y: f32,
+    pub angle: f32,
+    pub hp: i32,
 }
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "type")]

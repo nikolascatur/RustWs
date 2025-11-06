@@ -2,16 +2,16 @@ use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     Extension, Router,
-    extract::ws::{Message, WebSocket, WebSocketUpgrade},
+    extract::ws::{Message, WebSocket, WebSocketUpgrade, close_code::NORMAL},
     response::IntoResponse,
     routing::get,
 };
-use futures_util::{
-    SinkExt,
-    stream::{SplitSink, SplitStream, StreamExt},
+use futures_util::{SinkExt, stream::StreamExt};
+use parking_lot::RwLock as PLRwLock;
+use tokio::{
+    net::TcpListener,
+    sync::{RwLock, mpsc},
 };
-use parking_lot::RwLock;
-use tokio::{net::TcpListener, sync::mpsc};
 use uuid::Uuid;
 
 use crate::{
@@ -26,7 +26,7 @@ pub async fn run_socket() {
         .layer(Extension(players.clone()));
 
     let tcp_listener = TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    tokio::spawn(game_loop(players));
+    tokio::spawn(game_loop(players.clone()));
     axum::serve(tcp_listener, app.into_make_service())
         .await
         .unwrap();
@@ -53,12 +53,12 @@ async fn handle_socket(stream: WebSocket, players: Players) {
         angle: 0.0,
         vel: 0.0,
         hp: 100,
-        latest_input: RwLock::new(None),
+        latest_input: PLRwLock::new(None),
     });
 
     // user created share to others
     {
-        let mut plays = players.write();
+        let mut plays = players.write().await;
         plays.insert(id, player.clone());
     }
 
@@ -108,7 +108,7 @@ async fn handle_socket(stream: WebSocket, players: Players) {
 
     // cleanup create position broadcast delete
     {
-        let mut pls = players.write();
+        let mut pls = players.write().await;
         pls.remove(&id);
     }
 
